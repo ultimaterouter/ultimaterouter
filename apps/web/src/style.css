@@ -1,0 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+:root{font-family:'DM Sans',sans-serif;color:#f5f6fa;background:#080a12;font-synthesis:none;text-rendering:optimizeLegibility}
+*{box-sizing:border-box}body{margin:0;min-width:320px;min-height:100vh;background:radial-gradient(ellipse at 75% 10%,rgba(39,139,255,.13),transparent 35%),radial-gradient(ellipse at 15% 75%,rgba(116,69,255,.12),transparent 35%),#080a12}
+.shell{max-width:1180px;margin:auto;padding:30px 34px;min-height:100vh;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:13px;border-bottom:1px solid #ffffff16;padding:5px 0 24px}
+.brand-mark{width:42px;height:42px;border:1px solid #d6ae62;border-radius:12px;display:grid;place-items:center;color:#f5c66b;font-family:Manrope;font-weight:800}
+.brand-name{font:800 13px Manrope;letter-spacing:2px}.brand-subtitle{font-size:9px;letter-spacing:1.2px;color:#828b9e;margin-top:4px}
+.environment{margin-left:auto;color:#d6ae62;border:1px solid #d6ae6240;padding:7px 10px;border-radius:30px;font-size:9px;letter-spacing:1px}
+.hero{padding:105px 0 65px;max-width:780px}.eyebrow{color:#d6ae62;letter-spacing:3px;font-size:11px;font-weight:700}
+h1{font:800 clamp(38px,6vw,68px)/1.12 Manrope;letter-spacing:-3px;margin:22px 0}
+h1 span{background:linear-gradient(90deg,#f5c66b,#c7ceda 65%,#8c9cc0);background-clip:text;color:transparent}
+.hero p{max-width:600px;color:#a4adbf;font-size:16px;line-height:1.8}
+.status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.status-card{border:1px solid #ffffff17;background:linear-gradient(145deg,#ffffff0c,#ffffff04);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px;min-height:130px}
+.status-card span{font-size:12px;color:#929caf}.status-card strong{font:700 21px Manrope;color:#f5c66b}.status-card small{font-size:11px;color:#707b91}
+footer{margin-top:auto;padding-top:75px;color:#687287;font-size:9px;letter-spacing:2px}footer span{color:#d6ae62;margin:0 7px}
+@media(max-width:650px){.shell{padding:22px 18px}.hero{padding:75px 0 45px}h1{letter-spacing:-1.8px}.status-grid{grid-template-columns:1fr}.environment{font-size:8px}}
