@@ -77,8 +77,9 @@ The repository ships a root `wrangler.jsonc` configured as an **assets-only Work
 
 - `assets.directory` publishes the Vite output `apps/web/dist`.
 - `not_found_handling: "single-page-application"` serves `index.html` with HTTP 200 for unmatched paths, so direct
-  navigation and refresh of client-side routes work. Workers does **not** use `_redirects`; that file is retained
-  only for Pages compatibility and is harmless in the bundle.
+  navigation and refresh of client-side routes work. There is **no `_redirects` file**: Workers handles the SPA
+  fallback natively, and the old `/* /index.html 200` rule was removed because Cloudflare rejected it as an
+  infinite loop.
 - There is **no `main`**: no Worker code, no backend, and no secret is sent to Cloudflare.
 
 Dashboard / Workers Builds settings:
@@ -123,7 +124,7 @@ npx wrangler deploy --dry-run --outdir /tmp/ultimate-router-wrangler-dry
 npm ci                       # or npm install to refresh the lockfile
 npm test                     # backend tests
 npm run build                # frontend production build
-test -f apps/web/dist/_redirects
+test -f apps/web/dist/index.html            # SPA shell; no _redirects file is needed
 grep -R "localhost" apps/web/dist || true   # must find no production API URL
 node scripts/start-backend.mjs              # with local .env; expects DATABASE_URL
 ```
