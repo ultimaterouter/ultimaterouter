@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { pool } from "./pool.js";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -10,12 +10,16 @@ if (!process.env.DATABASE_URL?.trim()) {
 }
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const migrationPath = path.resolve(here, "../../migrations/001_initial.sql");
+const migrationDir = path.resolve(here, "../../migrations");
+const migrations = (await readdir(migrationDir))
+  .filter((name) => name.endsWith(".sql"))
+  .sort();
+
 const client = await pool.connect();
 
 try {
   await client.query("BEGIN");
-  // Serialize concurrent deploys so two replicas cannot apply the same migration twice.
+  // Serialize concurrent deploys so two replicas cannot apply migrations twice.
   await client.query("SELECT pg_advisory_xact_lock(8812345678901234567::bigint)");
   await client.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -24,19 +28,19 @@ try {
     )
   `);
 
-  const name = path.basename(migrationPath);
-  const existing = await client.query(
-    "SELECT 1 FROM schema_migrations WHERE name = $1",
-    [name]
-  );
-
-  if (existing.rowCount === 0) {
-    const sql = await readFile(migrationPath, "utf8");
+  for (const name of migrations) {
+    const existing = await client.query(
+      "SELECT 1 FROM schema_migrations WHERE name = $1",
+      [name]
+    );
+    if (existing.rowCount) {
+      console.log(`Migration already applied: ${name}`);
+      continue;
+    }
+    const sql = await readFile(path.join(migrationDir, name), "utf8");
     await client.query(sql);
     await client.query("INSERT INTO schema_migrations(name) VALUES ($1)", [name]);
     console.log(`Applied migration: ${name}`);
-  } else {
-    console.log(`Migration already applied: ${name}`);
   }
   await client.query("COMMIT");
 } catch (error) {

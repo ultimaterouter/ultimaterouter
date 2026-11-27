@@ -2,8 +2,9 @@ import express from "express";
 import cors from "cors";
 import { z } from "zod";
 import { pool } from "./db/pool.js";
+import { registerAuthRoutes } from "./auth.js";
 
-export function createApp() {
+export function createApp({ pool: dbPool = pool } = {}) {
   const app = express();
   const isProduction = process.env.NODE_ENV === "production";
   const configuredOrigins = (process.env.CORS_ORIGIN || "")
@@ -16,14 +17,16 @@ export function createApp() {
     : isProduction ? [] : ["http://localhost:5173"];
 
   app.disable("x-powered-by");
+  app.set("trust proxy", 1);
   app.use(cors({
     origin(origin, callback) {
       // Non-browser clients (including Railway healthchecks) send no Origin header.
       if (!origin) return callback(null, false);
       return callback(null, allowedOrigins.includes(origin.replace(/\/$/, "")));
     },
+    credentials: true,
     methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type"]
+    allowedHeaders: ["Content-Type", "X-Requested-With"]
   }));
   app.use(express.json({ limit: "256kb" }));
 
@@ -31,7 +34,7 @@ export function createApp() {
 
   app.get("/health/ready", async (_req, res) => {
     try {
-      await pool.query("SELECT 1");
+      await dbPool.query("SELECT 1");
       res.json({ status: "ready", database: "connected" });
     } catch {
       res.status(503).json({ status: "not_ready", database: "unavailable" });
@@ -42,8 +45,8 @@ export function createApp() {
     res.json({
       name: "Ultimate Router API",
       version: "0.1.0",
-      status: "foundation",
-      message: "Authentication and gateway features will be implemented in subsequent milestones."
+      status: "milestone-1",
+      message: "Authentication foundation is available; gateway features remain in later milestones."
     });
   });
 
@@ -55,6 +58,8 @@ export function createApp() {
     }
     return res.json({ valid: true, length: parsed.data.message.length });
   });
+
+  registerAuthRoutes(app, dbPool, allowedOrigins, isProduction);
 
   app.use((err, _req, res, _next) => {
     // Log a non-sensitive code only: error messages can contain connection strings.

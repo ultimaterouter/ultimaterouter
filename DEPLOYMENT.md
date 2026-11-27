@@ -55,9 +55,26 @@ If future features need JWT/provider secrets, add them **only** to this Railway 
 
 ### Migration behaviour
 
-`npm run db:migrate` creates `schema_migrations` if needed, takes a PostgreSQL advisory lock, and applies
-`001_initial.sql` only once. All statements are `CREATE ... IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS`.
-There is no `DROP`, `TRUNCATE`, `DELETE`, or reset. It is safe to run on every deploy.
+`npm run db:migrate` creates `schema_migrations` if needed, takes a PostgreSQL advisory lock, and applies all
+`migrations/*.sql` files in sorted order exactly once (`001_initial.sql`, `002_auth.sql`). All statements are
+additive (`CREATE ... IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`).
+There is no `DROP`, `TRUNCATE`, `DELETE`, or reset. It is safe to run on every Railway pre-deploy.
+
+### Authentication session design (Milestone 1)
+
+- Session cookie `ur_session` is an opaque random token; only its SHA-256 hash is persisted in `auth_sessions`.
+- Production cookie flags: `HttpOnly`, `Secure`, `SameSite=None`, `Path=/`, 7-day expiry. Local HTTP dev uses
+  `SameSite=Lax` and no `Secure` flag so Windows development still works.
+- Because frontend (`*.workers.dev`) and backend (`*.up.railway.app`) are different sites, `SameSite=None` +
+  `Secure` is required. Browsers that block third-party cookies (notably Safari ITP) may not retain this cookie;
+  the safe remedy is a same-site custom domain/proxy arrangement, **not** storing tokens in `localStorage`.
+- CORS allows only exact `CORS_ORIGIN` values with `credentials: true`; wildcard is rejected in production.
+- State-changing auth requests require `X-Requested-With: XMLHttpRequest`, blocking simple cross-site form posts.
+- Rate limits are in-process per IP (register 5/15m, login 8/15m, verification 10/15m, resend 5/1h).
+  A distributed limiter (Redis/Railway equivalent) is needed if the API is scaled to multiple replicas.
+- Email delivery is not faked. In production the verification token is never returned by the API; an email
+  provider must be configured before relying on verification links. Unverified accounts may sign in but are
+  marked `emailVerified: false` until a valid token is submitted to `/api/v1/auth/verify-email`.
 
 ## 3. Cloudflare Workers Static Assets setup
 

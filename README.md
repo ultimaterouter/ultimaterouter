@@ -35,8 +35,9 @@ docker compose down
 Do not use `docker compose down -v` unless you intentionally want to delete the local database volume.
 
 ## Current scope
-- React/Vite frontend shell
-- Express API shell
+- React/Vite frontend with register/login/logout and protected routes
+- Express API with PostgreSQL-backed sessions and verification workflow
+- Express health endpoints and foundation validation endpoint
 - PostgreSQL 16 local service
 - Initial schema migration for users, projects, conversations, and messages
 - Liveness/readiness endpoints
