@@ -66,7 +66,7 @@ The repository ships a root `wrangler.jsonc` configured as an **assets-only Work
 ```jsonc
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "ultimate-router-web",
+  "name": "ultimaterouter",
   "compatibility_date": "2026-11-27",
   "assets": {
     "directory": "./apps/web/dist",
@@ -84,7 +84,7 @@ The repository ships a root `wrangler.jsonc` configured as an **assets-only Work
 Dashboard / Workers Builds settings:
 
 1. Cloudflare dashboard → **Workers & Pages → Create → Worker → Connect to Git** (Workers Builds) → select
-   `ultimaterouter/ultimaterouter`.
+   `ultimaterouter/ultimaterouter`. The Worker name must be exactly **`ultimaterouter`** so it matches `wrangler.jsonc`.
 2. Production branch: **`rebuild`** (not `main` — `main` is the legacy tree without `apps/`).
 3. Root directory: `/` (repository root, where `package.json`, `package-lock.json` and `wrangler.jsonc` live).
 4. Build command: `npm run build`
@@ -92,7 +92,7 @@ Dashboard / Workers Builds settings:
 6. **Variables / Build-time environment variables** (Production, and Preview if desired):
    - `VITE_API_URL` = `https://ultimaterouter-production.up.railway.app` (exact HTTPS URL, no trailing slash).
    - This is baked into the Vite bundle at build time; after changing it, trigger a new build.
-7. Add the resulting Workers origin (for example `https://ultimate-router-web.<account>.workers.dev`, or your
+7. Add the resulting Workers origin (for example `https://ultimaterouter.<account>.workers.dev`, or your
    custom domain) to Railway's `CORS_ORIGIN`. No Railway configuration is changed in this repository.
 8. Verify after Cloudflare actually deploys:
    - `https://<worker>.workers.dev/` loads and shows API status **Online** / DB status **Connected**.
