@@ -55,9 +55,11 @@ Never commit `.env` or real credentials.
 
 ## Deployment
 
-GitHub + Railway (API and PostgreSQL) + Cloudflare Pages (frontend) configuration and step-by-step dashboard
-instructions are in [DEPLOYMENT.md](DEPLOYMENT.md). The backend image is built from the root `Dockerfile` using the
-repository root as build context; the Pages build command is `npm run build` with output `apps/web/dist`.
+GitHub + Railway (API and PostgreSQL) + Cloudflare Workers Static Assets (frontend) configuration and step-by-step
+dashboard instructions are in [DEPLOYMENT.md](DEPLOYMENT.md). The backend image is built from the root `Dockerfile`
+using the repository root as build context. The frontend is built with `npm run build` and published from
+`apps/web/dist` by the root `wrangler.jsonc` using `npx wrangler deploy`; the Worker is assets-only and contains no
+backend or secrets.
 
 Railway `railway.json` config-as-code is intentionally not used: Railway deprecated it and stops reading it on
 2026-12-01 for new services. Dashboard settings (or Railway IaC) are used instead.

@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ultimate-router-web",
+  // Assets-only Worker: no `main` script. The Express API remains on Railway.
+  // Compatibility date >= 2025-04-01 keeps SPA navigation requests served by assets.
+  "compatibility_date": "2026-11-27",
+  "assets": {
+    "directory": "./apps/web/dist",
+    "not_found_handling": "single-page-application"
+  }
+}

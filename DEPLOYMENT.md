@@ -1,7 +1,7 @@
-# Ultimate Router — Deployment Guide (GitHub + Railway + Cloudflare Pages)
+# Ultimate Router — Deployment Guide (GitHub + Railway + Cloudflare Workers)
 
-Target architecture: GitHub (source) → Railway (Express API + PostgreSQL) → Cloudflare Pages (React/Vite SPA).
-The browser talks directly to the Railway HTTPS API. **No backend, database, or Cloudflare Worker runs in Pages.**
+Target architecture: GitHub (source) → Railway (Express API + PostgreSQL) → Cloudflare Workers Static Assets (React/Vite SPA).
+The browser talks directly to the Railway HTTPS API. The Worker publishes only `apps/web/dist`; **no backend, database, or API proxy runs on Cloudflare.**
 
 ## 0. Why there is no `railway.json`
 
@@ -48,7 +48,7 @@ applied with the Railway CLI). All required dashboard values are listed below.
 | `PORT` | Injected by Railway | Listen port; do not hardcode |
 | `DATABASE_URL` | Add reference `${{Postgres.DATABASE_URL}}` | PostgreSQL connection (never paste a password) |
 | `DATABASE_SSL` | Set manually: `require` | TLS for Railway PostgreSQL |
-| `CORS_ORIGIN` | Set manually: exact Pages origin | Allows only your frontend domain; comma-separated for multiple exact origins |
+| `CORS_ORIGIN` | Set manually: exact Workers origin | Allows only your frontend domain; comma-separated for multiple exact origins |
 
 Never put provider API keys, JWT secrets, or database passwords in `Dockerfile`, source, or frontend variables.
 If future features need JWT/provider secrets, add them **only** to this Railway service's Variables tab.
@@ -59,26 +59,54 @@ If future features need JWT/provider secrets, add them **only** to this Railway 
 `001_initial.sql` only once. All statements are `CREATE ... IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS`.
 There is no `DROP`, `TRUNCATE`, `DELETE`, or reset. It is safe to run on every deploy.
 
-## 3. Cloudflare Pages setup
+## 3. Cloudflare Workers Static Assets setup
 
-1. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git** → select the same GitHub repository.
-2. Build settings:
-   - Production branch: `main`
-   - Root directory: `/` (repository root)
-   - Build command: `npm run build`
-   - Build output directory: `apps/web/dist`
-3. **Settings → Environment variables** (Production, and Preview if desired):
-   - `VITE_API_URL` = the Railway domain from step 2.10, e.g. `https://<service>.up.railway.app` (no trailing slash).
-   - This is a **build-time** variable: after changing it, trigger a new Pages build.
-4. Ensure no `404.html` exists at the site root; `apps/web/public/_redirects` contains
-   `/*  /index.html  200`, which Vite copies into `apps/web/dist/_redirects`. Direct visits and refreshes on
-   client-side routes therefore return `index.html` with HTTP 200.
-5. Deploy and verify:
-   - `https://<project>.pages.dev/` loads and shows API status **Online** / DB status **Connected**.
+The repository ships a root `wrangler.jsonc` configured as an **assets-only Worker**:
+
+```jsonc
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ultimate-router-web",
+  "compatibility_date": "2026-11-27",
+  "assets": {
+    "directory": "./apps/web/dist",
+    "not_found_handling": "single-page-application"
+  }
+}
+```
+
+- `assets.directory` publishes the Vite output `apps/web/dist`.
+- `not_found_handling: "single-page-application"` serves `index.html` with HTTP 200 for unmatched paths, so direct
+  navigation and refresh of client-side routes work. Workers does **not** use `_redirects`; that file is retained
+  only for Pages compatibility and is harmless in the bundle.
+- There is **no `main`**: no Worker code, no backend, and no secret is sent to Cloudflare.
+
+Dashboard / Workers Builds settings:
+
+1. Cloudflare dashboard → **Workers & Pages → Create → Worker → Connect to Git** (Workers Builds) → select
+   `ultimaterouter/ultimaterouter`.
+2. Production branch: **`rebuild`** (not `main` — `main` is the legacy tree without `apps/`).
+3. Root directory: `/` (repository root, where `package.json`, `package-lock.json` and `wrangler.jsonc` live).
+4. Build command: `npm run build`
+5. Deploy command: `npx wrangler deploy`
+6. **Variables / Build-time environment variables** (Production, and Preview if desired):
+   - `VITE_API_URL` = `https://ultimaterouter-production.up.railway.app` (exact HTTPS URL, no trailing slash).
+   - This is baked into the Vite bundle at build time; after changing it, trigger a new build.
+7. Add the resulting Workers origin (for example `https://ultimate-router-web.<account>.workers.dev`, or your
+   custom domain) to Railway's `CORS_ORIGIN`. No Railway configuration is changed in this repository.
+8. Verify after Cloudflare actually deploys:
+   - `https://<worker>.workers.dev/` loads and shows API status **Online** / DB status **Connected**.
    - Open a non-root client route directly and refresh it — no 404.
-   - Browser devtools → Network → API requests use the Railway HTTPS domain, never `localhost`.
-6. Optional: add a custom domain under **Settings → Custom domains**, then add that exact origin to Railway's
-   `CORS_ORIGIN` list. No Cloudflare Worker is required for this architecture.
+   - Browser devtools → Network → API requests use `https://ultimaterouter-production.up.railway.app`, never `localhost`.
+9. Optional: add a custom domain under **Settings → Custom Domains**, then add that exact origin to Railway's
+   `CORS_ORIGIN` list.
+
+Local dry run (no Cloudflare publish, no account needed):
+
+```bash
+npm run build
+npx wrangler deploy --dry-run --outdir /tmp/ultimate-router-wrangler-dry
+```
 
 ## 4. GitHub readiness
 
